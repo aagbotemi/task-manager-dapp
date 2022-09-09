@@ -1,13 +1,14 @@
-import { ethers } from "ethers";
 require("dotenv").config();
+import { ethers } from "ethers";
 import abi from "../utils/todo.json"
 
-const contractAddress = "0x057c50505c000805e2F7dcAD0E5deabC2Fd977Cc";
+const contractAddress = "0x4381cd503Cb6d3f6B692560BDaB3f9e0be606c10";
 const contractABI = abi.abi;
 
 export default function getTodoContract(isSigner = false) {
   // @ts-ignore
   const { ethereum } = window;
+  
   if(ethereum) {
     const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_RPC_URL);
     // @ts-ignore

@@ -1,254 +1,379 @@
-import { Fragment, useEffect, useState } from 'react';
-import './App.css';
-import getTodoContract from './utils/todoContract';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import 
-{
- useAccount, useSignMessage, useNetwork 
-}
- from 
-'wagmi'
+import { Fragment, useEffect, useState } from "react";
+import "./App.css";
+import getTodoContract from "./utils/todoContract";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
+import { AiFillDelete } from "react-icons/ai";
+import {
+  MdEdit,
+} from "react-icons/md";
+import { CgToggleOff, CgToggleOn } from "react-icons/cg";
+import DotLoader from "react-spinners/DotLoader";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 type Contract = any;
 
 // CONTRACT ADDRESS: 0x057c50505c000805e2F7dcAD0E5deabC2Fd977Cc
 function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [isEdit, setIsEdit] = useState<boolean>(false);
-  const [currentAccount, setCurrentAccount] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [indexOfTodo, setIndexOfTodo] = useState<number | null>(null);
   const [time, setTime] = useState<string>("");
   const [updateTitle, setUpdateTitle] = useState<string>("");
   const [updateTime, setUpdateTime] = useState<string>("");
   const [todos, setTodos] = useState<Array<any>>([]);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isCompleting, setIsCompleting] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  
   // @ts-ignore
-  const { ethereum }  = window;  
-
-
+  const { ethereum } = window;
   const { isConnected, address } = useAccount();
 
-
-  console.log("gggggggggg: ", {isConnected, address});
-  
-  
   const getTodos = async () => {
     if (ethereum) {
-      setIsLoading(true);
+      setLoading(true);
       try {
-        const todoContract: Contract | undefined = getTodoContract(true);        
+        const todoContract: Contract | undefined = getTodoContract(true);
         const todo = await todoContract.getTask();
-        console.log('Retrieved todos...', todo);
         setTodos(todo);
-        // setKeyboards(keyboards)
+        setLoading(false);
+      } catch(error: any) {
+        toast.dismiss();
+        toast.error(error.message, {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     }
-  }
-
-
+  };
 
   const createTodo = async (e: any) => {
     e.preventDefault();
 
-    if(!isConnected) {
-      alert("You need to connect!");
+    if (!isConnected) {
+      toast.dismiss();
+      toast.info("Make sure you connect to metaMask!", {
+        position: "top-right",
+        pauseOnHover: true,
+        draggable: false,
+      });
       return;
     }
 
-    const parsedTime = Date.parse(time)
+    const parsedTime = Date.parse(time);
 
-    // console.log({title, s});
-    // return;
-    
     if (ethereum) {
       setIsLoading(true);
       try {
         const todoContract: Contract | undefined = getTodoContract(true);
-        console.log("TOOODDDDDDOOOOOOOOO: ", todoContract);
-        
+
         const todo = await todoContract.setTask(title, parsedTime);
-        // const todo = await todoContract.setTask("This is wonderful", Date.now() * 1000 * 60 * 60);
-        console.log('Retrieved todos...', todo)
-        // setKeyboards(keyboards)
+
+        await todo.wait();
+
+        getTodos();
+
+        toast.dismiss();
+        toast.success("Created a task successfully!", {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
+
+        setIsLoading(false);
+      } catch(error: any) {
+        toast.dismiss();
+        toast.error(error.message, {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
       } finally {
         setIsLoading(false);
       }
     }
-  }
+  };
 
   const editTodo = async (e: any) => {
     e.preventDefault();
 
-    if(!isConnected) {
+    if (!isConnected) {
       alert("You need to connect!");
       return;
     }
-    
+
     if (ethereum) {
-      setIsLoading(true);
+      setIsEditing(true);
       try {
         const todoContract: Contract | undefined = getTodoContract(true);
-        console.log("TOOODDDDDDOOOOOOOOO: ", todoContract);
-
 
         // (uint256 _taskIndex, string calldata _task)
-        
+
         const todo = await todoContract.updateTask(indexOfTodo, updateTitle);
-        // const todo = await todoContract.setTask("This is wonderful", Date.now() * 1000 * 60 * 60);
-        console.log('Retrieved todos...', todo)
 
+        await todo.wait();
 
-        setUpdateTime("")
-        setUpdateTitle("")
-        setIndexOfTodo(null)
-        // setKeyboards(keyboards)
+        getTodos();
+        setIsEditing(false);
+
+        toast.dismiss();
+        toast.success("Edited a task successfully!", {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
+
+        setUpdateTime("");
+        setUpdateTitle("");
+        setIndexOfTodo(null);
+      } catch(error: any) {
+        toast.dismiss();
+        toast.error(error.message, {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
       } finally {
-        setIsLoading(false);
+        setIsEditing(false);
       }
     }
-  }
-  
-  
-  const updateTodo = async(todo: any, index: number) => {
-    setUpdateTime(todo.deadline)
-    setUpdateTitle(todo.task)
-    setIndexOfTodo(index)
+  };
+
+  const updateTodo = async (todo: any, index: number) => {
+    setUpdateTime(todo.deadline);
+    setUpdateTitle(todo.task);
+    setIndexOfTodo(index);
     setIsEdit(true);
-  }
-  
-  const completeTodo = async(index: number) => {
-    
+  };
+
+  const completeTodo = async (index: number) => {
+    alert(index);
     if (ethereum) {
-      setIsLoading(true);
+      setIsCompleting(true);
       try {
         const todoContract: Contract | undefined = getTodoContract(true);
-        
-        const todo = await todoContract.completeTask(index);
-        // const todo = await todoContract.setTask("This is wonderful", Date.now() * 1000 * 60 * 60);
-        console.log('Retrieved todos...', todo)
 
-        // setKeyboards(keyboards)
+        const todo = await todoContract.completeTask(index);
+        await todo.wait();
+
+        getTodos();
+
+        toast.dismiss();
+        toast.success("Toggled a task successfully!", {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
+
+        setIsCompleting(false);
+      } catch(error: any) {
+        toast.dismiss();
+        toast.error(error.message, {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
       } finally {
-        setIsLoading(false);
+        setIsCompleting(false);
       }
     }
-  }
+  };
 
-  
+  const deleteTodo = async (index: number) => {
+    if (ethereum) {
+      setIsDeleting(true);
+      try {
+        const todoContract: Contract | undefined = getTodoContract(true);
 
-  console.log({updateTime, updateTitle});
-  
+        const todo = await todoContract.deleteTask(index);
 
-  
+        await todo.wait();
 
-  useEffect(() => {getTodos()}, [])
+        getTodos();
+
+        toast.dismiss();
+        toast.success("Deleted a task successfully!", {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
+
+        setIsDeleting(false);
+      } catch(error: any) {
+        toast.dismiss();
+        toast.error(error.message, {
+          position: "top-right",
+          pauseOnHover: true,
+          draggable: false,
+        });
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    getTodos();
+  }, []);
 
   return (
-    <div className="mt-12">
-      <div className="">
-
-
+    <div className="grid place-items-center mt-12 ">
+      <div className="w-11/12 sm:w-3/4 md:w-2/3 p-2">
         <div className="text-center">
           <h1 className="text-3xl font-medium">TASK MANAGER</h1>
-          <p className="text-lg">Your daily task manager that helps you to keep track of your project!</p>
+          <p className="text-lg">
+            Your daily task manager that helps you to keep track of your
+            project!
+          </p>
         </div>
 
-        <ConnectButton
-          accountStatus="avatar"
-          chainStatus="icon"
-          showBalance={true}
-        />
+        <div className="flex justify-end mt-5 mb-5">
+          <ConnectButton
+            accountStatus="avatar"
+            chainStatus="icon"
+            showBalance={true}
+          />
+        </div>
 
+        {isEdit ? (
+          <div className="grid place-items-center mb-8">
+            <form
+              className="lg:flex lg:justify-center w-4/5"
+              onSubmit={editTodo}
+            >
+              <input
+                type="text"
+                value={updateTitle}
+                onChange={(e) => setUpdateTitle(e.target.value)}
+                className={
+                  "border border-gray-400 p-2 mr-4 rounded-md outline-none mb-3"
+                }
+                placeholder="Enter the content"
+              />
 
-
-        
-
-        {/* <form onSubmit={isEdit ? editTodo : createTodo}>
-          <input 
-          value={title ||''} name={"title"} 
-          onChange={(e) => setTitle(e.target.value)} type="text" placeholder='Enter the content' />
-
-          <input 
-          value={time ||''} name={"time"} 
-          onChange={(e) => setTime(e.target.value)} type="datetime" placeholder='deadline' id="" />
-
-          <button type='submit' disabled={isLoading} className="cursor-pointer" onClick={createTodo}>
-            {isLoading ?  "Loading..." : isEdit ? "Edit Todo" : 'Create Todo 💳'}
-          </button>
-        </form> */}
-
-
-
-
-
-
-        {
-          isEdit ? (
-            <form onSubmit={editTodo}>
-              <input 
-              value={updateTitle}
-              onChange={(e) => setUpdateTitle(e.target.value)} type="text" placeholder='Enter the content' />
-
-              <input 
-              value={updateTime}
-              onChange={(e) => setUpdateTime(e.target.value)} type="datetime-local" placeholder='deadline' name="" id="" />
-
-              <button type='submit' disabled={isLoading} className="cursor-pointer" onClick={editTodo}>
-                {isLoading ?  "Loading..." : "Edit Todo"}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="cursor-pointer bg-purple-600 rounded-md text-white mb-3 font-medium py-2 px-4"
+                onClick={editTodo}
+              >
+                {isLoading ? "Loading..." : "Edit Todo"}
               </button>
             </form>
-          ) : (
-            <form onSubmit={createTodo}>
-              <input 
-              value={title ||''}
-              onChange={(e) => setTitle(e.target.value)} type="text" placeholder='Enter the content' />
+          </div>
+        ) : (
+          <div className="grid place-items-center mb-8">
+            <form
+              className="lg:flex lg:justify-center w-4/5"
+              onSubmit={createTodo}
+            >
+              <input
+                type="text"
+                value={title || ""}
+                className={
+                  "border border-gray-400 p-2 rounded-md outline-none mb-3 mr-4"
+                }
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter the task"
+              />
 
-              <input 
-              value={time ||''}
-              onChange={(e) => setTime(e.target.value)} type="datetime-local" placeholder='deadline' name="" id="" />
+              <input
+                value={time || ""}
+                onChange={(e) => setTime(e.target.value)}
+                className={
+                  "border border-gray-400 p-2 mr-4 rounded-md outline-none mb-3 w-40"
+                }
+                type="datetime-local"
+                placeholder="deadline"
+              />
 
-              <button type='submit' disabled={isLoading} className="cursor-pointer" onClick={createTodo}>
-                {isLoading ?  "Loading..." : 'Create Todo 💳'}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="cursor-pointer bg-purple-700 rounded-md text-white mb-3 font-medium py-2 px-4"
+                onClick={createTodo}
+              >
+                {isLoading ? "Loading..." : "Create Todo"}
               </button>
             </form>
-          )
-        }
+          </div>
+        )}
 
+        <div className="absolute grid place-items-center">
+          <div className="w-4/5">
+            {(isLoading || isDeleting || isEditing || isCompleting) && (
+              <DotLoader size={120}  color="#rgb(73,163,75)" />
+            )}
+          </div>
+        </div>
 
-        {
-          todos.map((todo: any, index: any) => {
-            const tid = new Date(Number(todo.deadline._hex) * 1000);
-            // console.log(tid);
-            
-            return (
-              <Fragment>
-                <div key={index} className={`mb-16 ${todo.isCompleted ? "bg-green-300" : "bg-red-200"}`}>
-                  <div>{todo.task}</div>
-                  <div>{tid.toLocaleDateString()} - {tid.toLocaleTimeString()}</div>
+        {todos.map((todo: any, index: any) => {
+          const date = new Date(Number(todo.deadline._hex));
 
+          return (
+            todo.task !== "" && (
+              <Fragment key={index}>
+                <div
+                  className={`mb-4 p-3 rounded-md flex justify-between ${
+                    todo.isCompleted
+                      ? "bg-green-50 border border-green-500"
+                      : "bg-yellow-50 border border-yellow-500"
+                  }`}
+                >
+                  <div className="">
+                    <div>Task: {todo.task}</div>
+                    <div>
+                      Deadline: {date.toLocaleDateString()} -{" "}
+                      {date.toLocaleTimeString()}
+                    </div>
+                  </div>
 
-                  <div>{todo.isCompleted}</div>
-                  {!todo.isCompleted ? (<div className='cursor-pointer' onClick={() => updateTodo(todo, index)}>Edit</div>) : null}
+                  <div className="flex">
+                    <div>{todo.isCompleted}</div>
 
-                  
-                  <button 
-                    disabled={todo.isCompleted}
-                    className={`${!todo.isCompleted ? 'cursor-pointer' : null}`} 
-                    onClick={() => completeTodo(index)}
-                  >
-                    {todo.isCompleted ? "Completed" : "Mark as Complete"}
-                    {/* Complete */}
-                  </button>
+                    {!todo.isCompleted ? (
+                      <button
+                        className="cursor-pointer block"
+                        onClick={() => updateTodo(todo, index)}
+                      >
+                        <MdEdit size={20} color={"green"} />
+                      </button>
+                    ) : null}
+
+                    <button
+                      // disabled={todo.isCompleted}
+                      className={`block mx-4 cursor-pointer`}
+                      onClick={() => completeTodo(index)}
+                    >
+                      {todo.isCompleted ? (
+                        <CgToggleOff size={24} color="#8254CE" />
+                      ) : (
+                        <CgToggleOn size={24} color={"#A1621F"} />
+                      )}
+                    </button>
+
+                    {!todo.isCompleted ? (
+                      <button
+                        className="block"
+                        disabled={todo.isCompleted}
+                        onClick={() => deleteTodo(index)}
+                      >
+                        <AiFillDelete color="red" size={20} />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                {/* <div>{tid}</div> */}
               </Fragment>
             )
-          })
-        }
-
-
+          );
+        })}
       </div>
     </div>
   );
